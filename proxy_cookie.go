@@ -116,33 +116,54 @@ func (r *responseWriter) Write(bytes []byte) (int, error) {
 }
 
 func (r *responseWriter) WriteHeader(statusCode int) {
-	// workaround to get the cookies
+	// Print the status code being written
+	fmt.Printf("WriteHeader called with status code: %d\n", statusCode)
+
+	// Extract headers and print them
 	headers := r.writer.Header()
+	fmt.Printf("Original headers: %+v\n", headers)
+
+	// Create a mock HTTP response to extract cookies and print them
 	req := http.Response{Header: headers}
 	cookies := req.Cookies()
+	fmt.Printf("Extracted cookies: %+v\n", cookies)
 
-	// Delete set-cookie headers
+	// Delete Set-Cookie headers (if any)
 	r.writer.Header().Del(setCookieHeader)
+	fmt.Println("Set-Cookie headers deleted.")
 
-	// Add new cookie with modified path and domain
+	// Iterate over the cookies and apply modifications
 	for _, cookie := range cookies {
-		// add the prefix if any defined
+		originalCookie := *cookie // Copy the original cookie for comparison
+
+		// Add the prefix to the cookie path if defined
 		if len(r.pathPrefix) > 0 {
 			cookie.Path = prefixPath(cookie.Path, r.pathPrefix)
-		}
-		// rewrite the path
-		if len(r.pathRewrites) > 0 {
-			cookie.Path = handleRewrites(cookie.Path, r.pathRewrites)
-		}
-		// rewrite the domain
-		if len(r.domainRewrites) > 0 {
-			cookie.Domain = handleRewrites(cookie.Domain, r.domainRewrites)
+			fmt.Printf("Path prefixed: %s -> %s\n", originalCookie.Path, cookie.Path)
 		}
 
+		// Rewrite the path using pathRewrites if defined
+		if len(r.pathRewrites) > 0 {
+			cookie.Path = handleRewrites(cookie.Path, r.pathRewrites)
+			fmt.Printf("Path rewritten: %s -> %s\n", originalCookie.Path, cookie.Path)
+		}
+
+		// Rewrite the domain using domainRewrites if defined
+		if len(r.domainRewrites) > 0 {
+			cookie.Domain = handleRewrites(cookie.Domain, r.domainRewrites)
+			fmt.Printf("Domain rewritten: %s -> %s\n", originalCookie.Domain, cookie.Domain)
+		}
+
+		// Print the final modified cookie before setting it
+		fmt.Printf("Final cookie to be set: %+v\n", cookie)
+
+		// Set the modified cookie
 		http.SetCookie(r, cookie)
 	}
 
+	// Write the response header
 	r.writer.WriteHeader(statusCode)
+	fmt.Println("WriteHeader completed.")
 }
 
 func prefixPath(path, prefix string) string {
