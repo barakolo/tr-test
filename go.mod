@@ -1,3 +1,3 @@
-module github.com/SchmitzDan/traefik-plugin-proxy-cookie
+module github.com/barakolo/tr-test
 
-go 1.19
+go 1.20
